@@ -41,16 +41,15 @@ extension BluetoothManager {
 
             self.state.activity = .scanning
             self.emit(
-                .stateChanged(self.state)
+                .stateChanged(
+                    self.state
+                )
             )
 
             self.centralManager.scanForPeripherals(
-                withServices: [
-                    MirabilisUUID.Service.tutorial.uuid
-                ],
+                withServices: nil,
                 options: [
-                    CBCentralManagerScanOptionAllowDuplicatesKey:
-                        false
+                    CBCentralManagerScanOptionAllowDuplicatesKey: false
                 ]
             )
         }

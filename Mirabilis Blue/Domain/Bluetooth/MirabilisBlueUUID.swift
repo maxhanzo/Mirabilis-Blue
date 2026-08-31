@@ -7,13 +7,16 @@
 
 import CoreBluetooth
 
-nonisolated enum MirabilisUUID {
+nonisolated enum MirabilisDevice {
+    static let advertisedName =
+        "BLE-MIRABILIS-BLUE"
+}
 
+nonisolated enum MirabilisUUID {
     private static let customPrefix =
         "7E57A000-0000-4B1A-9C00-00000000"
 
     enum Service: CaseIterable, Hashable, Sendable {
-
         case deviceInformation
         case tutorial
 
@@ -42,7 +45,6 @@ nonisolated enum MirabilisUUID {
     }
 
     enum Characteristic: CaseIterable, Hashable, Sendable {
-
         // Device Information Service
         case serialNumber
         case hardwareRevision

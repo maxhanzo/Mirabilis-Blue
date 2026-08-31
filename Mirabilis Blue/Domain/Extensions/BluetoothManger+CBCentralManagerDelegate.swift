@@ -37,25 +37,45 @@ extension BluetoothManager: CBCentralManagerDelegate {
         advertisementData: [String: Any],
         rssi RSSI: NSNumber
     ) {
+        let advertisedName =
+            advertisementData[
+                CBAdvertisementDataLocalNameKey
+            ] as? String
+
+        let name =
+            advertisedName
+            ?? peripheral.name
+
+        guard name ==
+                MirabilisDevice.advertisedName else {
+            return
+        }
+
         discoveredPeripherals[
             peripheral.identifier
         ] = peripheral
 
         let device = BluetoothDevice(
             id: peripheral.identifier,
-            name: peripheral.name,
+            name: name,
             rssi: RSSI.intValue
         )
 
         AppLogger.bluetooth.debug(
-            "Discovered \(device.displayName, privacy: .public) [\(device.id.uuidString, privacy: .public)] RSSI \(device.rssi)"
+            """
+            Discovered \(device.displayName, privacy: .public) \
+            [\(device.id.uuidString, privacy: .public)] \
+            RSSI \(device.rssi)
+            """
         )
 
         emit(
-            .deviceDiscovered(device)
+            .deviceDiscovered(
+                device
+            )
         )
     }
-
+    
     func centralManager(
         _ central: CBCentralManager,
         didConnect peripheral: CBPeripheral
