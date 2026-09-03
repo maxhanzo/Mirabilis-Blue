@@ -46,7 +46,8 @@ final class AppCoordinator {
                 device
             )
         }
-    }}
+    }
+}
 
 // MARK: - Navigation
 

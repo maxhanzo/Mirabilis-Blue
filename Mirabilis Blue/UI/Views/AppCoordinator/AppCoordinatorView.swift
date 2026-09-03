@@ -31,11 +31,11 @@ struct AppCoordinatorView: View {
 
 // MARK: - Destinations
 
-private extension AppCoordinatorView {
+private extension AppCoordinatorView { // 'AppCoordinatorView' is ambiguous for type lookup in this context
 
     @ViewBuilder
     func destination(
-        for route: AppCoordinator.Route
+        for route: AppCoordinator.Route // Cannot find type 'AppCoordinator' in scope
     ) -> some View {
         switch route {
 

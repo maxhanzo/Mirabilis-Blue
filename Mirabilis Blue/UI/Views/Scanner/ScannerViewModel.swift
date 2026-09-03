@@ -12,6 +12,7 @@ import OSLog
 @MainActor
 @Observable
 final class ScannerViewModel {
+
     enum State: Equatable {
         case idle
         case scanning
@@ -20,16 +21,23 @@ final class ScannerViewModel {
     }
 
     // MARK: - Dependencies
+
     private let bluetoothManager: BluetoothManaging
+
+    @ObservationIgnored
     var onConnected: ((BluetoothDevice) -> Void)?
 
     // MARK: - State
+
     private(set) var state: State = .idle
 
     // MARK: - Private
+
+    @ObservationIgnored
     private var scanTimeoutTask: Task<Void, Never>?
 
     // MARK: - Init
+
     init(
         bluetoothManager: BluetoothManaging
     ) {
@@ -42,6 +50,7 @@ final class ScannerViewModel {
 // MARK: - Presentation
 
 extension ScannerViewModel {
+
     var isScanSheetPresented: Bool {
         state != .idle
     }
@@ -58,6 +67,7 @@ extension ScannerViewModel {
 // MARK: - User Actions
 
 extension ScannerViewModel {
+
     func scan() {
         startScan()
     }
@@ -77,12 +87,12 @@ extension ScannerViewModel {
             "BLE scan cancelled by user"
         )
     }
-    
 }
 
 // MARK: - Scan Lifecycle
 
 private extension ScannerViewModel {
+
     func startScan() {
         cancelScanTimeout()
 
@@ -135,7 +145,10 @@ private extension ScannerViewModel {
     }
 }
 
+// MARK: - Lifecycle
+
 extension ScannerViewModel {
+
     func tearDown() {
         cancelScanTimeout()
 
@@ -153,6 +166,7 @@ extension ScannerViewModel {
 // MARK: - Bluetooth Events
 
 extension ScannerViewModel: BluetoothObserving {
+
     func bluetoothManager(
         _ manager: any BluetoothManaging,
         didReceive event: BluetoothEvent
@@ -183,6 +197,7 @@ extension ScannerViewModel: BluetoothObserving {
 // MARK: - Bluetooth Event Handling
 
 private extension ScannerViewModel {
+
     func handleDiscoveredDevice(
         _ device: BluetoothDevice
     ) {
@@ -218,9 +233,9 @@ private extension ScannerViewModel {
             "Device connected. Opening device screen"
         )
 
-        onConnected?( // Cannot use optional chaining on non-optional value of type '(BluetoothDevice) -> Void'
-            device
-        )
+        if let onConnected {
+            onConnected(device)
+        }
     }
 
     func handleBluetoothError(

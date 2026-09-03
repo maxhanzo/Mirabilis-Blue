@@ -5,10 +5,10 @@
 //  Created by Max Ueda on 31/08/26.
 //
 
+import CoreBluetooth
 import Foundation
 import Observation
 import OSLog
-import CoreBluetooth
 
 @MainActor
 @Observable
@@ -38,10 +38,18 @@ final class DeviceViewModel {
     private(set) var serialNumber: String?
     private(set) var hardwareRevision: String?
     private(set) var firmwareRevision: String?
+    private(set) var lastWrittenValue: String?
 
-    private(set) var characteristics: [
-        MirabilisUUID.Characteristic
-    ] = []
+    private(set) var characteristics:
+        Set<MirabilisUUID.Characteristic> = []
+
+    private(set) var readingCharacteristics:
+        Set<MirabilisUUID.Characteristic> = []
+
+    private(set) var writingCharacteristics:
+        Set<MirabilisUUID.Characteristic> = []
+
+    var basicWriteInput = ""
 
     // MARK: - Init
 
@@ -72,16 +80,159 @@ extension DeviceViewModel {
         }
     }
 
-    var tutorialCharacteristics: [
-        MirabilisUUID.Characteristic
-    ] {
-        characteristics.filter {
-            $0.service == .tutorial
+    var isLoading: Bool {
+        state == .loading
+    }
+
+    var isConnected: Bool {
+        switch state {
+        case .loading,
+             .ready:
+            return true
+
+        case .disconnected,
+             .failed:
+            return false
         }
     }
 
-    var isLoading: Bool {
-        state == .loading
+    var statusText: String {
+        switch state {
+        case .loading:
+            return "Discovering characteristics…"
+
+        case .ready:
+            return "Connected"
+
+        case .disconnected:
+            return "Disconnected"
+
+        case .failed(let message):
+            return message
+        }
+    }
+
+    func value(
+        for characteristic: MirabilisUUID.Characteristic
+    ) -> String? {
+        switch characteristic {
+        case .serialNumber:
+            return serialNumber
+
+        case .hardwareRevision:
+            return hardwareRevision
+
+        case .firmwareRevision:
+            return firmwareRevision
+
+        case .lastWrittenValue:
+            return lastWrittenValue
+
+        default:
+            return nil
+        }
+    }
+
+    func canRead(
+        _ characteristic: MirabilisUUID.Characteristic
+    ) -> Bool {
+        guard state == .ready else {
+            return false
+        }
+
+        return characteristics.contains(
+            characteristic
+        )
+    }
+
+    func isReading(
+        _ characteristic: MirabilisUUID.Characteristic
+    ) -> Bool {
+        readingCharacteristics.contains(
+            characteristic
+        )
+    }
+
+    func isWriting(
+        _ characteristic: MirabilisUUID.Characteristic
+    ) -> Bool {
+        writingCharacteristics.contains(
+            characteristic
+        )
+    }
+
+    var canWriteBasicValue: Bool {
+        state == .ready &&
+        characteristics.contains(.basicWrite) &&
+        !basicWriteInput.isEmpty &&
+        !isWriting(.basicWrite)
+    }
+}
+
+// MARK: - User Actions
+
+extension DeviceViewModel {
+
+    func readSerialNumber() {
+        read(
+            .serialNumber
+        )
+    }
+
+    func readHardwareRevision() {
+        read(
+            .hardwareRevision
+        )
+    }
+
+    func readFirmwareRevision() {
+        read(
+            .firmwareRevision
+        )
+    }
+
+    func readLastWrittenValue() {
+        read(
+            .lastWrittenValue
+        )
+    }
+
+    func writeBasicValue() {
+        guard canWriteBasicValue,
+              let data = basicWriteInput.data(using: .utf8) else {
+            return
+        }
+
+        writingCharacteristics.insert(.basicWrite)
+
+        bluetoothManager.write(
+            data,
+            to: .basicWrite
+        )
+    }
+
+    func read(
+        _ characteristic: MirabilisUUID.Characteristic
+    ) {
+        guard canRead(characteristic) else {
+            return
+        }
+
+        readingCharacteristics.insert(
+            characteristic
+        )
+
+        AppLogger.ui.debug(
+            "Reading characteristic \(characteristic.uuid.uuidString, privacy: .public)"
+        )
+
+        bluetoothManager.read(
+            characteristic
+        )
+    }
+
+    func disconnect() {
+        bluetoothManager.disconnect()
     }
 }
 
@@ -124,6 +275,13 @@ extension DeviceViewModel: BluetoothObserving {
                 for: characteristic
             )
 
+        case .writeCompleted(
+            let characteristic
+        ):
+            writingCharacteristics.remove(
+                characteristic
+            )
+
         case .disconnected(
             deviceID: let deviceID
         ):
@@ -150,47 +308,14 @@ private extension DeviceViewModel {
         _ discoveredCharacteristics:
             Set<MirabilisUUID.Characteristic>
     ) {
-        characteristics = discoveredCharacteristics
-            .sorted {
-                $0.uuid.uuidString <
-                    $1.uuid.uuidString
-            }
-
-        AppLogger.ui.debug(
-            "Device characteristics discovered: \(discoveredCharacteristics.count)"
+        characteristics.formUnion(
+            discoveredCharacteristics
         )
-
-        readDeviceInformation()
 
         state = .ready
-    }
 
-    func readDeviceInformation() {
-        readIfAvailable(
-            .serialNumber
-        )
-
-        readIfAvailable(
-            .hardwareRevision
-        )
-
-        readIfAvailable(
-            .firmwareRevision
-        )
-    }
-
-    func readIfAvailable(
-        _ characteristic:
-            MirabilisUUID.Characteristic
-    ) {
-        guard characteristics.contains(
-            characteristic
-        ) else {
-            return
-        }
-
-        bluetoothManager.read(
-            characteristic
+        AppLogger.ui.debug(
+            "Device characteristics available: \(self.characteristics.count)"
         )
     }
 }
@@ -204,6 +329,10 @@ private extension DeviceViewModel {
         for characteristic:
             MirabilisUUID.Characteristic
     ) {
+        readingCharacteristics.remove(
+            characteristic
+        )
+
         switch characteristic {
 
         case .serialNumber:
@@ -218,6 +347,11 @@ private extension DeviceViewModel {
 
         case .firmwareRevision:
             firmwareRevision = decodeString(
+                from: data
+            )
+
+        case .lastWrittenValue:
+            lastWrittenValue = decodeString(
                 from: data
             )
 
@@ -250,6 +384,8 @@ private extension DeviceViewModel {
             return
         }
 
+        readingCharacteristics.removeAll()
+        writingCharacteristics.removeAll()
         state = .disconnected
 
         AppLogger.ui.info(
@@ -260,6 +396,9 @@ private extension DeviceViewModel {
     func handleBluetoothError(
         _ error: BluetoothError
     ) {
+        readingCharacteristics.removeAll()
+        writingCharacteristics.removeAll()
+
         AppLogger.ui.error(
             "Device flow error: \(error.localizedDescription, privacy: .public)"
         )
