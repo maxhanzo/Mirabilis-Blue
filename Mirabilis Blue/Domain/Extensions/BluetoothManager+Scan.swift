@@ -17,10 +17,26 @@ extension BluetoothManager {
                 return
             }
 
-            guard self.centralManager.state == .poweredOn else {
-                AppLogger.bluetooth.warning(
-                    "Scan requested while Bluetooth is unavailable"
+            let centralManager = self.centralManager
+
+            switch centralManager.state {
+
+            case .poweredOn:
+                self.shouldStartScanningWhenReady = false
+                self.performScan()
+
+            case .unknown,
+                 .resetting:
+                self.shouldStartScanningWhenReady = true
+
+                AppLogger.bluetooth.debug(
+                    "Bluetooth is initializing. Scan will start when ready."
                 )
+
+            case .poweredOff,
+                 .unauthorized,
+                 .unsupported:
+                self.shouldStartScanningWhenReady = false
 
                 self.emit(
                     .error(
@@ -30,28 +46,17 @@ extension BluetoothManager {
                     )
                 )
 
-                return
-            }
+            @unknown default:
+                self.shouldStartScanningWhenReady = false
 
-            AppLogger.bluetooth.debug(
-                "Starting BLE scan"
-            )
-
-            self.discoveredPeripherals.removeAll()
-
-            self.state.activity = .scanning
-            self.emit(
-                .stateChanged(
-                    self.state
+                self.emit(
+                    .error(
+                        .bluetoothUnavailable(
+                            self.state.availability
+                        )
+                    )
                 )
-            )
-
-            self.centralManager.scanForPeripherals(
-                withServices: nil,
-                options: [
-                    CBCentralManagerScanOptionAllowDuplicatesKey: false
-                ]
-            )
+            }
         }
     }
 
@@ -61,9 +66,7 @@ extension BluetoothManager {
                 return
             }
 
-            AppLogger.bluetooth.debug(
-                "Stopping BLE scan"
-            )
+            self.shouldStartScanningWhenReady = false
 
             self.centralManager.stopScan()
 
@@ -75,5 +78,34 @@ extension BluetoothManager {
                 )
             }
         }
+    }
+}
+
+extension BluetoothManager {
+
+    func performScan() {
+        AppLogger.bluetooth.info(
+            "performScan() called. Central state: \(String(describing: self.centralManager.state), privacy: .public)"
+        )
+
+        discoveredPeripherals.removeAll()
+
+        state.activity = .scanning
+
+        emit(
+            .stateChanged(state)
+        )
+
+        AppLogger.bluetooth.info(
+            "Calling scanForPeripherals for tutorial service"
+        )
+
+        centralManager.scanForPeripherals(
+            withServices: nil,
+            options: [
+                CBCentralManagerScanOptionAllowDuplicatesKey:
+                    false
+            ]
+        )
     }
 }

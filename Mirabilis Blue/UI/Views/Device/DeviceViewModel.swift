@@ -58,6 +58,9 @@ final class DeviceViewModel {
         Set<MirabilisUUID.Characteristic> = []
 
     var basicWriteInput = ""
+    
+    @ObservationIgnored
+    var onDisconnected: (() -> Void)?
 
     // MARK: - Init
 
@@ -486,11 +489,14 @@ private extension DeviceViewModel {
         readingCharacteristics.removeAll()
         writingCharacteristics.removeAll()
         notifyingCharacteristics.removeAll()
+
         state = .disconnected
 
         AppLogger.ui.info(
             "Device disconnected while DeviceView is active"
         )
+
+        onDisconnected?()
     }
 
     func handleBluetoothError(

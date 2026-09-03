@@ -73,9 +73,16 @@ extension AppCoordinator {
     func makeDeviceViewModel(
         device: BluetoothDevice
     ) -> DeviceViewModel {
-        DeviceViewModel(
+
+        let viewModel = DeviceViewModel(
             device: device,
             bluetoothManager: bluetoothManager
         )
+
+        viewModel.onDisconnected = { [weak self] in
+            self?.popToScanner()
+        }
+
+        return viewModel
     }
 }

@@ -14,6 +14,10 @@ extension BluetoothManager: CBCentralManagerDelegate {
     func centralManagerDidUpdateState(
         _ central: CBCentralManager
     ) {
+        AppLogger.bluetooth.info(
+            "Bluetooth state: \(String(describing: central.state), privacy: .public), pending scan: \(self.shouldStartScanningWhenReady)"
+        )
+        
         state.availability = map(
             central.state
         )
@@ -29,6 +33,13 @@ extension BluetoothManager: CBCentralManagerDelegate {
         emit(
             .stateChanged(state)
         )
+
+        if central.state == .poweredOn,
+           shouldStartScanningWhenReady {
+
+            shouldStartScanningWhenReady = false
+            performScan()
+        }
     }
 
     func centralManager(
@@ -37,6 +48,11 @@ extension BluetoothManager: CBCentralManagerDelegate {
         advertisementData: [String: Any],
         rssi RSSI: NSNumber
     ) {
+        
+        AppLogger.bluetooth.info(
+               "didDiscover raw peripheral: \(peripheral.name ?? "Unknown", privacy: .public)"
+           )
+
         let advertisedName =
             advertisementData[
                 CBAdvertisementDataLocalNameKey

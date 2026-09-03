@@ -28,6 +28,8 @@ final class BluetoothManager: NSObject, BluetoothManaging {
     }()
 
     var state: BluetoothState = .initial
+    
+    var shouldStartScanningWhenReady = false
 
     var discoveredPeripherals: [
         UUID: CBPeripheral

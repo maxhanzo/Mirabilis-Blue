@@ -26,7 +26,7 @@ final class ScannerViewModel {
 
     @ObservationIgnored
     var onConnected: ((BluetoothDevice) -> Void)?
-
+    
     // MARK: - State
 
     private(set) var state: State = .idle

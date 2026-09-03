@@ -9,7 +9,10 @@ import CoreBluetooth
 import SwiftUI
 
 struct DeviceView: View {
+
     @State var viewModel: DeviceViewModel
+    @State private var isDisconnectAlertPresented = false
+
     var body: some View {
         List {
             connectionSection
@@ -17,8 +20,47 @@ struct DeviceView: View {
             basicOperationsSection
             notificationsSection
         }
-        .navigationTitle(viewModel.device.displayName)
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(
+            viewModel.device.displayName
+        )
+        .navigationBarTitleDisplayMode(
+            .inline
+        )
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(
+                placement: .topBarLeading
+            ) {
+                Button {
+                    isDisconnectAlertPresented = true
+                } label: {
+                    Label(
+                        "Back",
+                        systemImage: "chevron.left"
+                    )
+                }
+            }
+        }
+        .alert(
+            "Disconnect Device?",
+            isPresented: $isDisconnectAlertPresented
+        ) {
+            Button(
+                "Cancel",
+                role: .cancel
+            ) {}
+
+            Button(
+                "Disconnect",
+                role: .destructive
+            ) {
+                viewModel.disconnect()
+            }
+        } message: {
+            Text(
+                "Would you like to disconnect from \(viewModel.device.displayName)?"
+            )
+        }
     }
 }
 
