@@ -39,6 +39,14 @@ final class DeviceViewModel {
     private(set) var hardwareRevision: String?
     private(set) var firmwareRevision: String?
     private(set) var lastWrittenValue: String?
+    
+    private(set) var observableValue: String?
+    private(set) var periodicEventValue: String?
+
+    private(set) var notifyingCharacteristics:
+        Set<MirabilisUUID.Characteristic> = []
+
+    var observableWriteInput = ""
 
     private(set) var characteristics:
         Set<MirabilisUUID.Characteristic> = []
@@ -128,6 +136,12 @@ extension DeviceViewModel {
         case .lastWrittenValue:
             return lastWrittenValue
 
+        case .observableValue:
+            return observableValue
+
+        case .periodicEventStream:
+            return periodicEventValue
+
         default:
             return nil
         }
@@ -166,6 +180,29 @@ extension DeviceViewModel {
         characteristics.contains(.basicWrite) &&
         !basicWriteInput.isEmpty &&
         !isWriting(.basicWrite)
+    }
+
+    var canWriteObservableValue: Bool {
+        state == .ready &&
+        characteristics.contains(.observableWrite) &&
+        !observableWriteInput.isEmpty &&
+        !isWriting(.observableWrite)
+    }
+
+    func canNotify(
+        _ characteristic: MirabilisUUID.Characteristic
+    ) -> Bool {
+        state == .ready &&
+        characteristics.contains(characteristic) &&
+        characteristic.supportsNotifications
+    }
+
+    func isNotifying(
+        _ characteristic: MirabilisUUID.Characteristic
+    ) -> Bool {
+        notifyingCharacteristics.contains(
+            characteristic
+        )
     }
 }
 
@@ -230,9 +267,61 @@ extension DeviceViewModel {
             characteristic
         )
     }
+    
+    func writeObservableValue() {
+        guard canWriteObservableValue,
+              let data = observableWriteInput.data(using: .utf8) else {
+            return
+        }
+
+        writingCharacteristics.insert(
+            .observableWrite
+        )
+
+        bluetoothManager.write(
+            data,
+            to: .observableWrite
+        )
+    }
+
+    func toggleObservableValueNotifications() {
+        toggleNotifications(
+            for: .observableValue
+        )
+    }
+
+    func togglePeriodicEventNotifications() {
+        toggleNotifications(
+            for: .periodicEventStream
+        )
+    }
+
+    func setNotifications(
+        _ enabled: Bool,
+        for characteristic: MirabilisUUID.Characteristic
+    ) {
+        guard canNotify(characteristic) else {
+            return
+        }
+
+        bluetoothManager.setNotifications(
+            enabled,
+            for: characteristic
+        )
+    }
+    
 
     func disconnect() {
         bluetoothManager.disconnect()
+    }
+
+    private func toggleNotifications(
+        for characteristic: MirabilisUUID.Characteristic
+    ) {
+        setNotifications(
+            !isNotifying(characteristic),
+            for: characteristic
+        )
     }
 }
 
@@ -280,6 +369,15 @@ extension DeviceViewModel: BluetoothObserving {
         ):
             writingCharacteristics.remove(
                 characteristic
+            )
+
+        case .notificationStateChanged(
+            characteristic: let characteristic,
+            isEnabled: let isEnabled
+        ):
+            handleNotificationStateChanged(
+                characteristic,
+                isEnabled: isEnabled
             )
 
         case .disconnected(
@@ -336,40 +434,41 @@ private extension DeviceViewModel {
         switch characteristic {
 
         case .serialNumber:
-            serialNumber = decodeString(
-                from: data
-            )
+            serialNumber = data.utf8String
 
         case .hardwareRevision:
-            hardwareRevision = decodeString(
-                from: data
-            )
+            hardwareRevision = data.utf8String
 
         case .firmwareRevision:
-            firmwareRevision = decodeString(
-                from: data
-            )
+            firmwareRevision = data.utf8String
 
         case .lastWrittenValue:
-            lastWrittenValue = decodeString(
-                from: data
-            )
+            lastWrittenValue = data.utf8String
+
+        case .observableValue:
+            observableValue = data.utf8String
+
+        case .periodicEventStream:
+            periodicEventValue = data.uint8Value.map(String.init)
 
         default:
             break
         }
     }
 
-    func decodeString(
-        from data: Data
-    ) -> String? {
-        String(
-            data: data,
-            encoding: .utf8
-        )?
-        .trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
+    func handleNotificationStateChanged(
+        _ characteristic: MirabilisUUID.Characteristic,
+        isEnabled: Bool
+    ) {
+        if isEnabled {
+            notifyingCharacteristics.insert(
+                characteristic
+            )
+        } else {
+            notifyingCharacteristics.remove(
+                characteristic
+            )
+        }
     }
 }
 
@@ -386,6 +485,7 @@ private extension DeviceViewModel {
 
         readingCharacteristics.removeAll()
         writingCharacteristics.removeAll()
+        notifyingCharacteristics.removeAll()
         state = .disconnected
 
         AppLogger.ui.info(
@@ -398,6 +498,7 @@ private extension DeviceViewModel {
     ) {
         readingCharacteristics.removeAll()
         writingCharacteristics.removeAll()
+        notifyingCharacteristics.removeAll()
 
         AppLogger.ui.error(
             "Device flow error: \(error.localizedDescription, privacy: .public)"

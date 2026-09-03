@@ -10,17 +10,12 @@ import SwiftUI
 
 struct DeviceView: View {
     @State var viewModel: DeviceViewModel
-    @FocusState private var focusedField: Field?
-
-    private enum Field {
-        case basicWrite
-    }
-
     var body: some View {
         List {
             connectionSection
             deviceInformationSection
             basicOperationsSection
+            notificationsSection
         }
         .navigationTitle(viewModel.device.displayName)
         .navigationBarTitleDisplayMode(.inline)
@@ -98,6 +93,43 @@ private extension DeviceView {
                 isEnabled: viewModel.canRead(.lastWrittenValue),
                 action: viewModel.readLastWrittenValue
             )
+        }
+    }
+
+    var notificationsSection: some View {
+        Section("Notifications") {
+            WriteCharacteristicRow(
+                characteristic: .observableWrite,
+                text: $viewModel.observableWriteInput,
+                buttonTitle: "Write",
+                isWriting: viewModel.isWriting(.observableWrite),
+                isEnabled: viewModel.canWriteObservableValue,
+                action: viewModel.writeObservableValue
+            )
+
+            NotifyCharacteristicRow(
+                characteristic: .observableValue,
+                value: viewModel.observableValue,
+                isNotifying: viewModel.isNotifying(.observableValue),
+                isEnabled: viewModel.canNotify(.observableValue)
+            ) { enabled in
+                viewModel.setNotifications(
+                    enabled,
+                    for: .observableValue
+                )
+            }
+
+            NotifyCharacteristicRow(
+                characteristic: .periodicEventStream,
+                value: viewModel.periodicEventValue,
+                isNotifying: viewModel.isNotifying(.periodicEventStream),
+                isEnabled: viewModel.canNotify(.periodicEventStream)
+            ) { enabled in
+                viewModel.setNotifications(
+                    enabled,
+                    for: .periodicEventStream
+                )
+            }
         }
     }
 }
@@ -194,6 +226,61 @@ private struct WriteCharacteristicRow: View {
     private func submit() {
         isTextFieldFocused = false
         action()
+    }
+}
+
+private struct NotifyCharacteristicRow: View {
+
+    let characteristic: MirabilisUUID.Characteristic
+    let value: String?
+    let isNotifying: Bool
+    let isEnabled: Bool
+    let onChange: (Bool) -> Void
+
+    var body: some View {
+        VStack(
+            alignment: .leading,
+            spacing: 8
+        ) {
+            CharacteristicHeader(
+                characteristic: characteristic
+            )
+
+            HStack(
+                spacing: 12
+            ) {
+                Text(
+                    value ?? "No value received"
+                )
+                .font(.subheadline)
+                .foregroundStyle(
+                    value == nil
+                        ? .secondary
+                        : .primary
+                )
+                .textSelection(.enabled)
+
+                Spacer()
+
+                Toggle(
+                    "Notify",
+                    isOn: Binding(
+                        get: {
+                            isNotifying
+                        },
+                        set: { enabled in
+                            onChange(enabled)
+                        }
+                    )
+                )
+                .labelsHidden()
+                .disabled(!isEnabled)
+            }
+        }
+        .padding(
+            .vertical,
+            4
+        )
     }
 }
 
