@@ -4,7 +4,7 @@
 //
 //  Created by Max Ueda on 31/08/26.
 //
-
+/*
 import Foundation
 
 extension BluetoothError: LocalizedError {
@@ -56,3 +56,4 @@ extension BluetoothError: LocalizedError {
         }
     }
 }
+*/

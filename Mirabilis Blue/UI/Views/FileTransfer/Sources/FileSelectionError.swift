@@ -21,7 +21,10 @@ public enum FileSelectionError: LocalizedError {
             return "The selected file is empty."
 
         case .fileTooLarge:
-            return "The selected file exceeds the 16,384-byte limit."
+            return """
+            The selected file exceeds the \
+            \(FileTransferProtocol.maximumFileSize.formatted())-byte limit.
+            """
         }
     }
 }

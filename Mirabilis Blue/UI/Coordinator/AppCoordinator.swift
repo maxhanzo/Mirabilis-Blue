@@ -11,7 +11,6 @@ import Observation
 @MainActor
 @Observable
 final class AppCoordinator {
-
     // MARK: - Route
 
     enum Route: Hashable {
@@ -21,7 +20,11 @@ final class AppCoordinator {
 
     // MARK: - Dependencies
 
-    private let bluetoothManager: BluetoothManaging
+    private let bluetoothManager:
+        BluetoothManaging
+
+    let connectionController:
+        BluetoothConnectionController
 
     // MARK: - Navigation
 
@@ -36,13 +39,24 @@ final class AppCoordinator {
     init(
         bluetoothManager: BluetoothManaging
     ) {
-        self.bluetoothManager = bluetoothManager
+        self.bluetoothManager =
+            bluetoothManager
 
-        self.scannerViewModel = ScannerViewModel(
-            bluetoothManager: bluetoothManager
-        )
+        self.connectionController =
+            BluetoothConnectionController(
+                bluetoothManager:
+                    bluetoothManager
+            )
 
-        self.scannerViewModel.onConnected = { [weak self] device in
+        self.scannerViewModel =
+            ScannerViewModel(
+                bluetoothManager:
+                    bluetoothManager
+            )
+
+        self.scannerViewModel.onConnected = {
+            [weak self] device in
+
             self?.showDevice(
                 device
             )
@@ -61,7 +75,7 @@ extension AppCoordinator {
             .device(device)
         )
     }
-    
+
     func showFileTransfer(
         for device: BluetoothDevice
     ) {
@@ -75,7 +89,52 @@ extension AppCoordinator {
     }
 }
 
+// MARK: - Bluetooth Connection
+
+// MARK: - Bluetooth Connection
+
+extension AppCoordinator {
+
+    var shouldPresentReconnectAlert: Bool {
+        get {
+            connectionController
+                .shouldPresentReconnectAlert
+        }
+        set {
+            connectionController
+                .shouldPresentReconnectAlert =
+                newValue
+        }
+    }
+
+    var reconnectMessage: String {
+        connectionController
+            .reconnectMessage
+    }
+
+    var isReconnecting: Bool {
+        connectionController
+            .isReconnecting
+    }
+
+    func retryBluetoothConnection() {
+        connectionController
+            .retryConnection()
+    }
+
+    func dismissReconnectAlert() {
+        connectionController
+            .dismissReconnectAlert()
+    }
+
+    func disconnectAndReturnToScanner() {
+        bluetoothManager.disconnect()
+        popToScanner()
+    }
+}
+
 // MARK: - ViewModels
+
 extension AppCoordinator {
 
     func makeDeviceViewModel(
@@ -83,7 +142,8 @@ extension AppCoordinator {
     ) -> DeviceViewModel {
         DeviceViewModel(
             device: device,
-            bluetoothManager: bluetoothManager
+            bluetoothManager:
+                bluetoothManager
         )
     }
 
@@ -92,7 +152,10 @@ extension AppCoordinator {
     ) -> FileTransferViewModel {
         FileTransferViewModel(
             device: device,
-            bluetoothManager: bluetoothManager
+            bluetoothManager:
+                bluetoothManager,
+            connectionController:
+                connectionController
         )
     }
 }

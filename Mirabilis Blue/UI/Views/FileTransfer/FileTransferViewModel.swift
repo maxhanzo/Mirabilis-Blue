@@ -16,8 +16,14 @@ final class FileTransferViewModel {
 
     // MARK: - Dependencies
 
-    private let bluetoothManager: BluetoothManaging
-    private let fileTransferService: FileTransferService
+    private let bluetoothManager:
+        BluetoothManaging
+
+    private let fileTransferService:
+        FileTransferService
+
+    private let connectionController:
+        BluetoothConnectionController
 
     // MARK: - Device
 
@@ -25,16 +31,21 @@ final class FileTransferViewModel {
 
     // MARK: - Statistics
 
-    private(set) var totalUploadedBytes: UInt64?
-    private(set) var isReadingTotalUploadedBytes = false
+    private(set) var totalUploadedBytes:
+        UInt64?
+
+    private(set) var
+        isReadingTotalUploadedBytes = false
 
     // MARK: - File Selection
 
-    private(set) var selectedFile: SelectedFile?
+    private(set) var selectedFile:
+        SelectedFile?
 
     // MARK: - Download Export
 
-    private(set) var downloadedData: Data?
+    private(set) var downloadedData:
+        Data?
 
     var isFileExporterPresented = false
 
@@ -46,28 +57,43 @@ final class FileTransferViewModel {
     private(set) var transferState:
         FileTransferState = .idle
 
-    private(set) var errorMessage: String?
+    private(set) var errorMessage:
+        String?
 
     @ObservationIgnored
     private var hasLoaded = false
 
     init(
         device: BluetoothDevice,
-        bluetoothManager: BluetoothManaging
+        bluetoothManager:
+            BluetoothManaging,
+        connectionController:
+            BluetoothConnectionController
     ) {
         self.device = device
-        self.bluetoothManager = bluetoothManager
+
+        self.bluetoothManager =
+            bluetoothManager
+
+        self.connectionController =
+            connectionController
 
         let fileTransferService =
             FileTransferService(
-                bluetoothManager: bluetoothManager
+                bluetoothManager:
+                    bluetoothManager
             )
 
         self.fileTransferService =
             fileTransferService
 
-        bluetoothManager.addObserver(self)
-        fileTransferService.addObserver(self)
+        bluetoothManager.addObserver(
+            self
+        )
+
+        fileTransferService.addObserver(
+            self
+        )
 
         AppLogger.ui.debug(
             "FileTransferViewModel initialized for \(device.displayName, privacy: .public)"
@@ -75,16 +101,29 @@ final class FileTransferViewModel {
     }
 }
 
+// MARK: - Connection
+
+extension FileTransferViewModel {
+
+    var isConnected: Bool {
+        connectionController
+            .isConnected
+    }
+}
+
 // MARK: - Presentation
 
 extension FileTransferViewModel {
 
-    var totalUploadedBytesText: String {
+    var totalUploadedBytesText:
+        String {
         guard let totalUploadedBytes else {
             return "Not read"
         }
 
-        return "\(totalUploadedBytes.formatted()) bytes"
+        return """
+        \(totalUploadedBytes.formatted()) bytes
+        """
     }
 
     var hasSelectedFile: Bool {
@@ -92,19 +131,29 @@ extension FileTransferViewModel {
     }
 
     var canChooseFile: Bool {
+        isConnected &&
+        !transferState.isTransferring
+    }
+
+    var canReadStatistics: Bool {
+        isConnected &&
+        !isReadingTotalUploadedBytes &&
         !transferState.isTransferring
     }
 
     var canUpload: Bool {
+        isConnected &&
         selectedFile != nil &&
         !transferState.isTransferring
     }
 
     var canDownload: Bool {
+        isConnected &&
         !transferState.isTransferring
     }
 
     var canCancel: Bool {
+        isConnected &&
         transferState.isTransferring
     }
 
@@ -129,13 +178,20 @@ extension FileTransferViewModel {
             return nil
         }
 
-        return "\(bytesTransferred.formatted()) / \(totalBytes.formatted()) bytes"
+        return """
+        \(bytesTransferred.formatted()) / \
+        \(totalBytes.formatted()) bytes
+        """
     }
 
     var transferStatusText: String? {
         switch transferState {
 
         case .idle:
+            if !isConnected {
+                return "Bluetooth disconnected"
+            }
+
             return nil
 
         case .preparingUpload:
@@ -147,18 +203,33 @@ extension FileTransferViewModel {
         case .preparingDownload:
             return "Preparing download…"
 
-        case .downloading(let bytesTransferred):
-            return "\(bytesTransferred.formatted()) bytes downloaded"
+        case .downloading(
+            let bytesTransferred
+        ):
+            return """
+            \(bytesTransferred.formatted()) \
+            bytes downloaded
+            """
 
         case .completed(
-            .upload(let bytesTransferred)
+            .upload(
+                let bytesTransferred
+            )
         ):
-            return "Upload completed — \(bytesTransferred.formatted()) bytes"
+            return """
+            Upload completed — \
+            \(bytesTransferred.formatted()) bytes
+            """
 
         case .completed(
-            .download(let bytesTransferred)
+            .download(
+                let bytesTransferred
+            )
         ):
-            return "Download completed — \(bytesTransferred.formatted()) bytes"
+            return """
+            Download completed — \
+            \(bytesTransferred.formatted()) bytes
+            """
 
         case .cancelled:
             return "Transfer cancelled"
@@ -190,10 +261,20 @@ extension FileTransferViewModel {
         }
 
         hasLoaded = true
+
+        guard isConnected else {
+            return
+        }
+
         readTotalUploadedBytes()
     }
 
     func readTotalUploadedBytes() {
+        guard isConnected else {
+            handleNotConnected()
+            return
+        }
+
         guard !isReadingTotalUploadedBytes else {
             return
         }
@@ -234,18 +315,25 @@ extension FileTransferViewModel {
                     ]
                 )
 
-            guard resourceValues.isRegularFile == true else {
-                throw FileSelectionError.notARegularFile
+            guard resourceValues
+                .isRegularFile == true else {
+                throw FileSelectionError
+                    .notARegularFile
             }
 
-            if let fileSize = resourceValues.fileSize {
+            if let fileSize =
+                resourceValues.fileSize {
+
                 guard fileSize > 0 else {
-                    throw FileSelectionError.emptyFile
+                    throw FileSelectionError
+                        .emptyFile
                 }
 
                 guard fileSize <=
-                        FileTransferProtocol.maximumFileSize else {
-                    throw FileSelectionError.fileTooLarge
+                        FileTransferProtocol
+                            .maximumFileSize else {
+                    throw FileSelectionError
+                        .fileTooLarge
                 }
             }
 
@@ -254,26 +342,34 @@ extension FileTransferViewModel {
             )
 
             guard !data.isEmpty else {
-                throw FileSelectionError.emptyFile
+                throw FileSelectionError
+                    .emptyFile
             }
 
             guard data.count <=
-                    FileTransferProtocol.maximumFileSize else {
-                throw FileSelectionError.fileTooLarge
+                    FileTransferProtocol
+                        .maximumFileSize else {
+                throw FileSelectionError
+                    .fileTooLarge
             }
 
-            selectedFile = SelectedFile(
-                name: url.lastPathComponent,
-                data: data
-            )
+            selectedFile =
+                SelectedFile(
+                    name:
+                        url.lastPathComponent,
+                    data: data
+                )
 
             AppLogger.ui.info(
                 "Selected file: \(url.lastPathComponent, privacy: .public), \(data.count) bytes"
             )
 
-        } catch let error as FileSelectionError {
+        } catch let error
+            as FileSelectionError {
+
             selectedFile = nil
-            errorMessage = error.localizedDescription
+            errorMessage =
+                error.localizedDescription
 
         } catch {
             selectedFile = nil
@@ -289,7 +385,8 @@ extension FileTransferViewModel {
     func handleFileImporterError(
         _ error: Error
     ) {
-        errorMessage = error.localizedDescription
+        errorMessage =
+            error.localizedDescription
     }
 
     func handleFileExporterResult(
@@ -314,6 +411,11 @@ extension FileTransferViewModel {
 extension FileTransferViewModel {
 
     func uploadSelectedFile() {
+        guard isConnected else {
+            handleNotConnected()
+            return
+        }
+
         guard let selectedFile else {
             return
         }
@@ -325,29 +427,56 @@ extension FileTransferViewModel {
             try fileTransferService.upload(
                 selectedFile.data
             )
-        } catch let error as FileTransferError {
-            transferState = .failed(error)
-            errorMessage = error.localizedDescription
+
+        } catch let error
+            as FileTransferError {
+
+            transferState =
+                .failed(error)
+
+            errorMessage =
+                error.localizedDescription
+
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage =
+                error.localizedDescription
         }
     }
 
     func downloadFile() {
+        guard isConnected else {
+            handleNotConnected()
+            return
+        }
+
         errorMessage = nil
         downloadedData = nil
 
         do {
-            try fileTransferService.download()
-        } catch let error as FileTransferError {
-            transferState = .failed(error)
-            errorMessage = error.localizedDescription
+            try fileTransferService
+                .download()
+
+        } catch let error
+            as FileTransferError {
+
+            transferState =
+                .failed(error)
+
+            errorMessage =
+                error.localizedDescription
+
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage =
+                error.localizedDescription
         }
     }
 
     func cancelTransfer() {
+        guard isConnected else {
+            handleNotConnected()
+            return
+        }
+
         fileTransferService.cancel()
     }
 }
@@ -359,21 +488,25 @@ extension FileTransferViewModel:
 
     func fileTransferService(
         _ service: FileTransferService,
-        didChangeState state: FileTransferState
+        didChangeState state:
+            FileTransferState
     ) {
         transferState = state
 
         switch state {
 
         case .completed(.upload):
-            readTotalUploadedBytes()
+            if isConnected {
+                readTotalUploadedBytes()
+            }
 
         case .completed(.download):
             downloadedData =
                 service.downloadedData
 
             if downloadedData != nil {
-                isFileExporterPresented = true
+                isFileExporterPresented =
+                    true
             }
 
         case .failed(let error):
@@ -388,16 +521,47 @@ extension FileTransferViewModel:
 
 // MARK: - BluetoothObserving
 
-extension FileTransferViewModel: BluetoothObserving {
+extension FileTransferViewModel:
+    BluetoothObserving {
 
     func bluetoothManager(
         _ manager: any BluetoothManaging,
-        didReceive event: BluetoothEvent
+        didReceive event:
+            BluetoothEvent
     ) {
         switch event {
 
+        case .connected(let connectedDevice):
+            guard connectedDevice.id ==
+                    device.id else {
+                return
+            }
+
+            errorMessage = nil
+
+            if hasLoaded {
+                readTotalUploadedBytes()
+            }
+
+        case .disconnected(
+            deviceID: let deviceID
+        ):
+            guard deviceID ==
+                    device.id else {
+                return
+            }
+
+            isReadingTotalUploadedBytes =
+                false
+
+            if !transferState
+                .isTransferring {
+                errorMessage = nil
+            }
+
         case .valueUpdated(
-            characteristic: .totalUploadedBytes,
+            characteristic:
+                .totalUploadedBytes,
             data: let data
         ):
             handleTotalUploadedBytes(
@@ -405,17 +569,56 @@ extension FileTransferViewModel: BluetoothObserving {
             )
 
         case .error(let error):
-            guard isReadingTotalUploadedBytes else {
-                return
-            }
-
-            isReadingTotalUploadedBytes = false
-            errorMessage =
-                error.localizedDescription
+            handleBluetoothError(
+                error
+            )
 
         default:
             break
         }
+    }
+}
+
+// MARK: - Bluetooth Errors
+
+private extension FileTransferViewModel {
+
+    func handleBluetoothError(
+        _ error: BluetoothError
+    ) {
+        let wasReadingTotalUploadedBytes =
+            isReadingTotalUploadedBytes
+
+        if wasReadingTotalUploadedBytes {
+            isReadingTotalUploadedBytes =
+                false
+        }
+
+        switch error {
+
+        case .notConnected:
+            handleNotConnected()
+
+        default:
+            /*
+             FileTransferService owns transfer-related
+             Bluetooth errors. Only surface unrelated
+             BLE errors here when this feature initiated
+             a statistics read.
+             */
+            if wasReadingTotalUploadedBytes {
+                errorMessage =
+                    error.localizedDescription
+            }
+        }
+    }
+
+    func handleNotConnected() {
+        isReadingTotalUploadedBytes =
+            false
+
+        errorMessage =
+            "Connect to the device before using file transfer."
     }
 }
 
@@ -426,14 +629,19 @@ private extension FileTransferViewModel {
     func handleTotalUploadedBytes(
         _ data: Data
     ) {
-        isReadingTotalUploadedBytes = false
+        isReadingTotalUploadedBytes =
+            false
 
         guard let value =
                 decodeUInt64LittleEndian(
                     from: data
                 ) else {
             errorMessage =
-                "Invalid Total Uploaded Bytes response."
+                """
+                Invalid Total Uploaded Bytes \
+                response.
+                """
+
             return
         }
 
@@ -451,6 +659,7 @@ private extension FileTransferViewModel {
 
         for (index, byte) in
             data.prefix(8).enumerated() {
+
             value |=
                 UInt64(byte) <<
                 UInt64(index * 8)
@@ -459,3 +668,4 @@ private extension FileTransferViewModel {
         return value
     }
 }
+

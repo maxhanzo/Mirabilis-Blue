@@ -20,40 +20,42 @@ extension BluetoothManager {
             }
 
             guard characteristic.supportsRead else {
-                AppLogger.bluetooth.warning(
-                    "READ requested for unsupported characteristic \(String(describing: characteristic), privacy: .public)"
-                )
-
                 self.emit(
                     .error(
-                        .unsupportedOperation(characteristic)
+                        .unsupportedOperation(
+                            characteristic
+                        )
                     )
                 )
 
                 return
             }
 
-            guard
-                let cbCharacteristic =
-                    self.discoveredCharacteristics[characteristic],
-                let peripheral = self.connectedPeripheral
-            else {
-                AppLogger.bluetooth.error(
-                    "READ failed to start: characteristic \(String(describing: characteristic), privacy: .public) is unavailable"
-                )
-
+            guard let peripheral =
+                    self.connectedPeripheral else {
                 self.emit(
                     .error(
-                        .characteristicNotFound(characteristic)
+                        .notConnected
                     )
                 )
 
                 return
             }
 
-            AppLogger.bluetooth.debug(
-                "READ → \(String(describing: characteristic), privacy: .public)"
-            )
+            guard let cbCharacteristic =
+                    self.discoveredCharacteristics[
+                        characteristic
+                    ] else {
+                self.emit(
+                    .error(
+                        .characteristicNotFound(
+                            characteristic
+                        )
+                    )
+                )
+
+                return
+            }
 
             peripheral.readValue(
                 for: cbCharacteristic
@@ -63,7 +65,8 @@ extension BluetoothManager {
 
     func write(
         _ data: Data,
-        to characteristic: MirabilisUUID.Characteristic
+        to characteristic:
+            MirabilisUUID.Characteristic
     ) {
         bluetoothQueue.async { [weak self] in
             guard let self else {
@@ -72,41 +75,42 @@ extension BluetoothManager {
 
             guard let writeType =
                     characteristic.writeType else {
-
-                AppLogger.bluetooth.warning(
-                    "WRITE requested for unsupported characteristic \(String(describing: characteristic), privacy: .public)"
-                )
-
                 self.emit(
                     .error(
-                        .unsupportedOperation(characteristic)
+                        .unsupportedOperation(
+                            characteristic
+                        )
                     )
                 )
 
                 return
             }
 
-            guard
-                let cbCharacteristic =
-                    self.discoveredCharacteristics[characteristic],
-                let peripheral = self.connectedPeripheral
-            else {
-                AppLogger.bluetooth.error(
-                    "WRITE failed to start: characteristic \(String(describing: characteristic), privacy: .public) is unavailable"
-                )
-
+            guard let peripheral =
+                    self.connectedPeripheral else {
                 self.emit(
                     .error(
-                        .characteristicNotFound(characteristic)
+                        .notConnected
                     )
                 )
 
                 return
             }
 
-            AppLogger.bluetooth.debug(
-                "WRITE → \(String(describing: characteristic), privacy: .public) [\(data.count) bytes] type=\(String(describing: writeType), privacy: .public)"
-            )
+            guard let cbCharacteristic =
+                    self.discoveredCharacteristics[
+                        characteristic
+                    ] else {
+                self.emit(
+                    .error(
+                        .characteristicNotFound(
+                            characteristic
+                        )
+                    )
+                )
+
+                return
+            }
 
             peripheral.writeValue(
                 data,
@@ -118,48 +122,52 @@ extension BluetoothManager {
 
     func setNotifications(
         _ enabled: Bool,
-        for characteristic: MirabilisUUID.Characteristic
+        for characteristic:
+            MirabilisUUID.Characteristic
     ) {
         bluetoothQueue.async { [weak self] in
             guard let self else {
                 return
             }
 
-            guard characteristic.supportsNotifications else {
-                AppLogger.bluetooth.warning(
-                    "NOTIFY requested for unsupported characteristic \(String(describing: characteristic), privacy: .public)"
-                )
-
+            guard characteristic
+                .supportsNotifications else {
                 self.emit(
                     .error(
-                        .unsupportedOperation(characteristic)
+                        .unsupportedOperation(
+                            characteristic
+                        )
                     )
                 )
 
                 return
             }
 
-            guard
-                let cbCharacteristic =
-                    self.discoveredCharacteristics[characteristic],
-                let peripheral = self.connectedPeripheral
-            else {
-                AppLogger.bluetooth.error(
-                    "NOTIFY failed to start: characteristic \(String(describing: characteristic), privacy: .public) is unavailable"
-                )
-
+            guard let peripheral =
+                    self.connectedPeripheral else {
                 self.emit(
                     .error(
-                        .characteristicNotFound(characteristic)
+                        .notConnected
                     )
                 )
 
                 return
             }
 
-            AppLogger.bluetooth.debug(
-                "NOTIFY \(enabled ? "ON" : "OFF", privacy: .public) → \(String(describing: characteristic), privacy: .public)"
-            )
+            guard let cbCharacteristic =
+                    self.discoveredCharacteristics[
+                        characteristic
+                    ] else {
+                self.emit(
+                    .error(
+                        .characteristicNotFound(
+                            characteristic
+                        )
+                    )
+                )
+
+                return
+            }
 
             peripheral.setNotifyValue(
                 enabled,

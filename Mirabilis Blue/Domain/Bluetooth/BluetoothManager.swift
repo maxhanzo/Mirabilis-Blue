@@ -107,6 +107,9 @@ extension BluetoothManager {
     func removeObserver(
         _ observer: BluetoothObserving
     ) {
+        let observerID =
+            ObjectIdentifier(observer)
+
         bluetoothQueue.async { [weak self] in
             guard let self else {
                 return
@@ -118,7 +121,7 @@ extension BluetoothManager {
                 }
 
                 return ObjectIdentifier(value)
-                    == ObjectIdentifier(observer)
+                    == observerID
             }
         }
     }

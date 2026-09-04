@@ -14,6 +14,7 @@ struct DeviceView: View {
     @State private var isDisconnectAlertPresented = false
     
     let onFileTransferTapped: () -> Void
+    let onDisconnectConfirmed: () -> Void
 
     var body: some View {
         List {
@@ -57,7 +58,7 @@ struct DeviceView: View {
                 "Disconnect",
                 role: .destructive
             ) {
-                viewModel.disconnect()
+                onDisconnectConfirmed()
             }
         } message: {
             Text(
