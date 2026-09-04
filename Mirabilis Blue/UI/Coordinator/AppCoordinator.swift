@@ -16,6 +16,7 @@ final class AppCoordinator {
 
     enum Route: Hashable {
         case device(BluetoothDevice)
+        case fileTransfer(BluetoothDevice)
     }
 
     // MARK: - Dependencies
@@ -60,6 +61,14 @@ extension AppCoordinator {
             .device(device)
         )
     }
+    
+    func showFileTransfer(
+        for device: BluetoothDevice
+    ) {
+        path.append(
+            .fileTransfer(device)
+        )
+    }
 
     func popToScanner() {
         path.removeAll()
@@ -67,22 +76,23 @@ extension AppCoordinator {
 }
 
 // MARK: - ViewModels
-
 extension AppCoordinator {
 
     func makeDeviceViewModel(
         device: BluetoothDevice
     ) -> DeviceViewModel {
-
-        let viewModel = DeviceViewModel(
+        DeviceViewModel(
             device: device,
             bluetoothManager: bluetoothManager
         )
+    }
 
-        viewModel.onDisconnected = { [weak self] in
-            self?.popToScanner()
-        }
-
-        return viewModel
+    func makeFileTransferViewModel(
+        device: BluetoothDevice
+    ) -> FileTransferViewModel {
+        FileTransferViewModel(
+            device: device,
+            bluetoothManager: bluetoothManager
+        )
     }
 }

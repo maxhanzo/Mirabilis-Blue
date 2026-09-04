@@ -35,7 +35,7 @@ private extension AppCoordinatorView { // 'AppCoordinatorView' is ambiguous for 
 
     @ViewBuilder
     func destination(
-        for route: AppCoordinator.Route // Cannot find type 'AppCoordinator' in scope
+        for route: AppCoordinator.Route
     ) -> some View {
         switch route {
 
@@ -43,6 +43,19 @@ private extension AppCoordinatorView { // 'AppCoordinatorView' is ambiguous for 
             DeviceView(
                 viewModel:
                     coordinator.makeDeviceViewModel(
+                        device: device
+                    ),
+                onFileTransferTapped: {
+                    coordinator.showFileTransfer(
+                        for: device
+                    )
+                }
+            )
+
+        case .fileTransfer(let device):
+            FileTransferView(
+                viewModel:
+                    coordinator.makeFileTransferViewModel(
                         device: device
                     )
             )

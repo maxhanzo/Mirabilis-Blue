@@ -12,6 +12,8 @@ struct DeviceView: View {
 
     @State var viewModel: DeviceViewModel
     @State private var isDisconnectAlertPresented = false
+    
+    let onFileTransferTapped: () -> Void
 
     var body: some View {
         List {
@@ -19,6 +21,7 @@ struct DeviceView: View {
             deviceInformationSection
             basicOperationsSection
             notificationsSection
+            fileTransferSection
         }
         .navigationTitle(
             viewModel.device.displayName
@@ -172,6 +175,52 @@ private extension DeviceView {
                     for: .periodicEventStream
                 )
             }
+        }
+    }
+}
+
+// MARK: - File Transfer
+private extension DeviceView {
+
+    var fileTransferSection: some View {
+        Section(
+            "File Transfer"
+        ) {
+            Button {
+                onFileTransferTapped()
+            } label: {
+                HStack(
+                    spacing: 12
+                ) {
+                    Image(
+                        systemName:
+                            "arrow.up.arrow.down"
+                    )
+
+                    Text(
+                        "File Transfer"
+                    )
+
+                    Spacer()
+
+                    Image(
+                        systemName:
+                            "chevron.right"
+                    )
+                    .font(
+                        .caption
+                    )
+                    .foregroundStyle(
+                        .secondary
+                    )
+                }
+                .contentShape(
+                    Rectangle()
+                )
+            }
+            .buttonStyle(
+                .plain
+            )
         }
     }
 }
