@@ -290,24 +290,23 @@ This repository accompanies:
 
 ### Connected Devices for Mobile Engineers
 
-**Part 1 --- BLE Foundations**\
-ATT, GATT, services, characteristics and the fundamentals behind BLE
-communication.
+**[Part 1 — BLE Foundations](https://www.linkedin.com/pulse/part-1-ble-foundations-max-hiroyuki-ueda-dlm6f/)**
 
-**Part 2 --- Building Our BLE Laboratory**\
-Building and configuring the nRF52840-based reference peripheral used
-throughout the series.
+ATT, GATT, services, characteristics and the fundamentals behind BLE communication.
 
-**Part 3A --- Building the iOS Client with CoreBluetooth**\
-Building the native iOS client and exploring its CoreBluetooth
-architecture and implementation.
+**[Part 2 — Building Our BLE Laboratory](https://www.linkedin.com/pulse/part-2-building-our-ble-laboratory-max-hiroyuki-ueda-w56kf/)**
 
-**Part 3B --- Implementing Bidirectional File Transfer over GATT**\
-Designing and implementing a custom file-transfer protocol on top of
-BLE.
+Building and configuring the nRF52840-based reference peripheral used throughout the series.
 
-Links to the published articles can be added here as each part becomes
-available.
+**[Part 3A — Building the iOS Client with CoreBluetooth](https://www.linkedin.com/pulse/part-3a-building-ios-client-corebluetooth-max-hiroyuki-ueda-1gpif)**
+
+Building the native iOS client and exploring its CoreBluetooth architecture and implementation.
+
+**Part 3B — Implementing Bidirectional File Transfer over GATT**
+
+Designing and implementing a custom file-transfer protocol on top of BLE.
+
+*Coming soon.*
 
 ------------------------------------------------------------------------
 
